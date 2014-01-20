@@ -1,0 +1,12 @@
+CREATE TABLE freemage_files
+(
+    UniqueID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    FileNamesCSV TEXT NOT NULL,
+    Timestamp INTEGER NOT NULL,
+    TagsCSV TEXT
+);
+CREATE TABLE freemage_data
+(
+    TagName TEXT NOT NULL PRIMARY KEY,
+    FileUIDsCSV TEXT
+);

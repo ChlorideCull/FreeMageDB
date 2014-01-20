@@ -1,0 +1,29 @@
+>>> import sqlite3
+>>> underdb = sqlite3.connect(":memory:")
+>>> _suppress = underdb.executescript(open("bootstrap.sql", mode="r").read())
+>>> underdb.commit()
+>>> import mainclass
+>>> overdb = mainclass.FreeMageDB(underdb)
+>>> overdb.make_tag("suggestive")
+>>> overdb.make_tag("pony")
+>>> overdb.make_tag("safe")
+>>> overdb.make_tag("le funny maymays")
+>>> overdb.make_file(["/srv/image/873253.png"])
+1
+>>> overdb.make_file(["/srv/image/873254.png", "/srv/image/873255.png"])
+2
+>>> overdb.get_tags()
+['le funny maymays', 'pony', 'safe', 'suggestive']
+>>> overdb.get_files()
+[1, 2]
+>>> _suppress = overdb.get_file_info(1)
+>>> print(_suppress["filenames"])
+['/srv/image/873253.png']
+>>> _suppress = overdb.get_file_info(2)
+>>> print(_suppress["tags"])
+[]
+>>> overdb.set_file_tags(1, ["pony", "safe", "le funny maymays"])
+>>> underdb.execute("SELECT FileNamesCSV,TagsCSV FROM freemage_files").fetchall()
+[('/srv/image/873253.png', 'pony,safe,le funny maymays'), ('/srv/image/873254.png,/srv/image/873255.png', None)]
+>>> underdb.execute("SELECT * FROM freemage_data").fetchall()
+[('suggestive', ''), ('pony', '1'), ('safe', '1'), ('le funny maymays', '1')]
