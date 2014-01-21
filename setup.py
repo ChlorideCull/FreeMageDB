@@ -18,4 +18,5 @@ setup(name="FreeMageDB",
         url="https://github.com/ChlorideCull/FreeMageDB",
         classifiers=classifiers,
         packages=['FreeMage']
+        scripts=['scripts/fmdbc.py']
         )
