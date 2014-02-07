@@ -7,8 +7,19 @@ class FreeMageDB(object):
     that it's YOUR responsibility to handle SQL errors.
     """
     def __init__(self, DBAPI2Connector):
+        """
+        Load a session with the UserID 0 for R/W, which is public.
+        """
+        self.__init__(DBAPI2Connector, 0)
+
+    def __init__(self, DBAPI2Connector, UserID):
+        """
+        Load a session with the specified UserID for R/W, as well as UID 0 for R.
+        """
         self.connector = DBAPI2Connector
-    
+        if type(UserID) != int:
+            raise Exception("User type invalid!")
+        self.user = UserID
     
     
     def get_tags(self):
@@ -16,7 +27,8 @@ class FreeMageDB(object):
         Returns a list of all tag names.
         """
         cur = self.connector.cursor()
-        cur.execute("SELECT TagName FROM freemage_data")
+        cur.execute("SELECT TagName FROM freemage_data WHERE UsID=0 OR UsID=?",
+                     (self.user,))
         output = []
         for x in cur.fetchall():
             output.append(x[0])
@@ -27,10 +39,11 @@ class FreeMageDB(object):
     
     def get_files(self):
         """
-        Returns a list of all file UIDs.
+        Returns a list of all file IDs.
         """
         cur = self.connector.cursor()
-        cur.execute("SELECT UniqueID FROM freemage_files")
+        cur.execute("SELECT UniqueID FROM freemage_files WHERE UsID=0 OR UsID=?"
+                    , (self.user,))
         output = []
         for x in cur:
             output.append(x[0])
@@ -41,8 +54,9 @@ class FreeMageDB(object):
     
     def get_file_info(self, FileUID):
         """
-        Gets info about the FileUID. Returns a dictionary containing "filenames", a
-        list of filenames; "timestamp", a UNIX timestamp and "tags", a list of tags.
+        Gets info about the FileUID. Returns a dictionary containing "filenames"
+        which is a list of filenames; "timestamp", a UNIX timestamp and "tags",
+        a list of tags which may or may not be available as the current user.
         """
         cur = self.connector.cursor()
         output = {"filenames": [], "timestamp": 0, "tags": []}
@@ -60,7 +74,7 @@ class FreeMageDB(object):
     
     def get_files_from_tags(self, TagNameList):
         """
-        Returns a list of file UIDs that's a member of all tags in TagNameList.
+        Returns a list of file IDs that's a member of all tags in TagNameList.
 
         Works by keeping a counter on how many times each image is present,
         which might not be that optimized on large databases.
@@ -70,7 +84,8 @@ class FreeMageDB(object):
         output = {}
         outputlist = []
         for tag in TagNameList:
-            cur.execute("SELECT FileUIDsCSV FROM freemage_data WHERE TagName=?", (tag,))
+            cur.execute(("SELECT FileUIDsCSV FROM freemage_data WHERE TagName=?"
+                        " AND (UsID=0 OR UsID=?)", (tag, self.user))
             for y in cur.fetchone()[0].split(","):
                 output[y] = output.get(y, 0) + 1
         for x in output:
@@ -86,7 +101,8 @@ class FreeMageDB(object):
         Creates an empty tag with the specified name.
         """
         cur = self.connector.cursor()
-        cur.execute("INSERT INTO freemage_data VALUES (?, '')", (TagName,))
+        cur.execute("INSERT INTO freemage_data VALUES (?, ?, '')",
+                    (self.user, TagName))
         self.connector.commit()
         cur.close()
     
@@ -94,7 +110,8 @@ class FreeMageDB(object):
     
     def make_file(self, FileNameList):
         """
-        Creates a file entry pointing to the paths located at FileNameList, returning the UID.
+        Creates a file entry pointing to the paths located at FileNameList, 
+        returning the UID.
         """
         cur = self.connector.cursor()
         FileNamesCSV = ""
@@ -102,9 +119,12 @@ class FreeMageDB(object):
             FileNamesCSV += x + ","
         FileNamesCSV = FileNamesCSV.rstrip(",")
         Timestamp = int(time.time())
-        cur.execute("INSERT INTO freemage_files (FileNamesCSV,Timestamp) VALUES (?, ?)", (FileNamesCSV, Timestamp))
+        cur.execute(("INSERT INTO freemage_files (UsID,FileNamesCSV,Timestamp)"
+                    " VALUES (?, ?, ?)"), (self.user, FileNamesCSV, Timestamp))
         self.connector.commit()
-        cur.execute("SELECT UniqueID FROM freemage_files WHERE FileNamesCSV=? AND Timestamp=?", (FileNamesCSV, Timestamp))
+        cur.execute(("SELECT UniqueID FROM freemage_files WHERE"
+                    "FileNamesCSV=? AND Timestamp=? AND UsID=?"), 
+                    (FileNamesCSV, Timestamp, self.user))
         toreturn = cur.fetchone()[0]
         cur.close()
         return toreturn
@@ -156,8 +176,9 @@ class FreeMageDB(object):
             for y in FileList:
                 outputcsv += str(y) + ","
             outputcsv = outputcsv.rstrip(",")
-            cur.execute("UPDATE freemage_data SET FileUIDsCSV=? WHERE TagName=?", (outputcsv, x))
-        
+            cur.execute(("UPDATE freemage_data SET FileUIDsCSV=? WHERE"
+                        " TagName=? AND UsID=?"), (outputcsv, x, self.user))
+
         for x in DeletedTags:
             _process_query(FileUID, x, True)
         for x in AddedTags:
@@ -167,6 +188,7 @@ class FreeMageDB(object):
         for x in NewTags:
             outputcsv += x + ","
         outputcsv = outputcsv.rstrip(",")
-        cur.execute("UPDATE freemage_files SET TagsCSV=? WHERE UniqueID=?", (outputcsv, FileUID))
+        cur.execute(("UPDATE freemage_files SET TagsCSV=? WHERE"
+                    "UniqueID=? AND UsID=?"), (outputcsv, FileUID, self.user))
         self.connector.commit()
         cur.close()

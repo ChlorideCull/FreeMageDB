@@ -2,7 +2,7 @@
 from distutils.core import setup
 
 classifiers = [
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "License :: OSI Approved :: GNU Affero General Public License v3",
@@ -11,7 +11,7 @@ classifiers = [
 ]
 
 setup(name="FreeMageDB",
-        version="1.1",
+        version="1.2",
         description="FreeMage - A Free File Database Back-End",
         author="Chloride Cull",
         author_email="chloride@devurandom.net",
