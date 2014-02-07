@@ -55,12 +55,14 @@ class FreeMageDB(object):
     def get_file_info(self, FileUID):
         """
         Gets info about the FileUID. Returns a dictionary containing "filenames"
-        which is a list of filenames; "timestamp", a UNIX timestamp and "tags",
-        a list of tags which may or may not be available as the current user.
+        which is a list of filenames; "timestamp", a UNIX timestamp; "userid", 
+        an integer specifying the owner and "tags", a list of tags which may or
+        may not be available as the current user.
         """
         cur = self.connector.cursor()
         output = {"filenames": [], "timestamp": 0, "tags": []}
-        cur.execute("SELECT FileNamesCSV,Timestamp,TagsCSV FROM freemage_files WHERE UniqueID=?", (FileUID,))
+        cur.execute(("SELECT FileNamesCSV,Timestamp,TagsCSV,UsID"
+                    "FROM freemage_files WHERE UniqueID=?"), (FileUID,))
         curout = cur.fetchone()
         for x in curout[0].split(","):
             output["filenames"].append(x)
@@ -68,6 +70,7 @@ class FreeMageDB(object):
             for x in curout[2].split(","):
                 output["tags"].append(x)
         output["timestamp"] = curout[1]
+        output["userid"] = curout[3]
         cur.close()
         return output
     
