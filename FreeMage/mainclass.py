@@ -6,13 +6,7 @@ class FreeMageDB(object):
     well as leaving error handling to the API user. This means
     that it's YOUR responsibility to handle SQL errors.
     """
-    def __init__(self, DBAPI2Connector):
-        """
-        Load a session with the UserID 0 for R/W, which is public.
-        """
-        self.__init__(DBAPI2Connector, 0)
-
-    def __init__(self, DBAPI2Connector, UserID):
+    def __init__(self, DBAPI2Connector, UserID=0):
         """
         Load a session with the specified UserID for R/W, as well as UID 0 for R.
         """
@@ -22,13 +16,16 @@ class FreeMageDB(object):
         self.user = UserID
     
     
-    def get_tags(self):
+    def get_tags(self, all_users=False):
         """
         Returns a list of all tag names.
         """
         cur = self.connector.cursor()
-        cur.execute("SELECT TagName FROM freemage_data WHERE UsID=0 OR UsID=?",
-                     (self.user,))
+        if all_users:
+            cur.execute("SELECT TagName FROM freemage_data")
+        else:
+            cur.execute("SELECT TagName FROM freemage_data WHERE "
+                        "UsID=0 OR UsID=?", (self.user,))
         output = []
         for x in cur.fetchall():
             output.append(x[0])
@@ -62,7 +59,7 @@ class FreeMageDB(object):
         cur = self.connector.cursor()
         output = {"filenames": [], "timestamp": 0, "tags": []}
         cur.execute(("SELECT FileNamesCSV,Timestamp,TagsCSV,UsID"
-                    "FROM freemage_files WHERE UniqueID=?"), (FileUID,))
+                    " FROM freemage_files WHERE UniqueID=?"), (FileUID,))
         curout = cur.fetchone()
         for x in curout[0].split(","):
             output["filenames"].append(x)
@@ -88,7 +85,7 @@ class FreeMageDB(object):
         outputlist = []
         for tag in TagNameList:
             cur.execute(("SELECT FileUIDsCSV FROM freemage_data WHERE TagName=?"
-                        " AND (UsID=0 OR UsID=?)", (tag, self.user))
+                        " AND (UsID=0 OR UsID=?)"), (tag, self.user))
             for y in cur.fetchone()[0].split(","):
                 output[y] = output.get(y, 0) + 1
         for x in output:
@@ -103,6 +100,9 @@ class FreeMageDB(object):
         """
         Creates an empty tag with the specified name.
         """
+        if ((TagName in self.get_tags()) or ((self.user == 0) and 
+                    (TagName in self.get_tags(all_users=True)))):
+            raise Exception("Tag already exists")
         cur = self.connector.cursor()
         cur.execute("INSERT INTO freemage_data VALUES (?, ?, '')",
                     (self.user, TagName))
@@ -125,7 +125,7 @@ class FreeMageDB(object):
         cur.execute(("INSERT INTO freemage_files (UsID,FileNamesCSV,Timestamp)"
                     " VALUES (?, ?, ?)"), (self.user, FileNamesCSV, Timestamp))
         self.connector.commit()
-        cur.execute(("SELECT UniqueID FROM freemage_files WHERE"
+        cur.execute(("SELECT UniqueID FROM freemage_files WHERE "
                     "FileNamesCSV=? AND Timestamp=? AND UsID=?"), 
                     (FileNamesCSV, Timestamp, self.user))
         toreturn = cur.fetchone()[0]
@@ -165,7 +165,11 @@ class FreeMageDB(object):
         Set the tags of FileUID to the NewTags-list.
         """
         cur = self.connector.cursor()
-        OldTags = self.get_file_info(FileUID)["tags"]
+        FileInfo = self.get_file_info(FileUID)
+        if (FileInfo["userid"] != self.user) and (self.user != 0):
+            raise Exception("Not allowed to change other users image")
+            return
+        OldTags = FileInfo["tags"]
         DeletedTags = [x for x in OldTags if not x in NewTags]
         AddedTags = [x for x in NewTags if not x in OldTags]
     
@@ -180,7 +184,7 @@ class FreeMageDB(object):
                 outputcsv += str(y) + ","
             outputcsv = outputcsv.rstrip(",")
             cur.execute(("UPDATE freemage_data SET FileUIDsCSV=? WHERE"
-                        " TagName=? AND UsID=?"), (outputcsv, x, self.user))
+                        " TagName=? AND (UsID=? OR UsID=0)"), (outputcsv, x, self.user))
 
         for x in DeletedTags:
             _process_query(FileUID, x, True)
@@ -192,6 +196,6 @@ class FreeMageDB(object):
             outputcsv += x + ","
         outputcsv = outputcsv.rstrip(",")
         cur.execute(("UPDATE freemage_files SET TagsCSV=? WHERE"
-                    "UniqueID=? AND UsID=?"), (outputcsv, FileUID, self.user))
+                    " UniqueID=? AND UsID=?"), (outputcsv, FileUID, self.user))
         self.connector.commit()
         cur.close()

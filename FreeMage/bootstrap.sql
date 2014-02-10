@@ -9,6 +9,6 @@ CREATE TABLE freemage_files
 CREATE TABLE freemage_data
 (
     UsID INTEGER NOT NULL,
-    TagName TEXT NOT NULL PRIMARY KEY,
+    TagName TEXT NOT NULL,
     FileUIDsCSV TEXT
 );
