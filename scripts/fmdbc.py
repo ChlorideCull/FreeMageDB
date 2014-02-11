@@ -2,7 +2,7 @@
 import FreeMage
 import sqlite3
 
-def main(filename, userid=0):
+def main(filename, userid=0, debug=False):
     print("FreeMageDB Console")
     print("Connected to " + filename + " as User " + str(userid))
     fmgdb = FreeMage.FreeMageDB(sqlite3.connect(filename), userid)
@@ -52,7 +52,7 @@ def main(filename, userid=0):
                 while True:
                     tag = input("Tag (blank to finish): ")
                     if tag != "":
-                        tag_output.append(fn)
+                        tag_output.append(tag)
                     else:
                         break
                 print("setting tags of " + str(idimg))
@@ -81,15 +81,23 @@ def main(filename, userid=0):
             else:
                 print("unknown command")
         except sqlite3.Error:
-            print("sqlite error occured")
+            if not debug:
+                print("sqlite error occured")
+            else:
+                raise
         except Exception:
-            print("misc error occured")
+            if not debug:
+                print("misc error occured")
+            else:
+                raise
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) < 2:
-        print("Usage:" + sys.argv[0] + " <database> [UserID]")
-    elif len(sys.argv) == 2:
+    if len(sys.argv) == 2:
         main(sys.argv[1])
     elif len(sys.argv) == 3:
         main(sys.argv[1], userid=int(sys.argv[2]))
+    elif (len(sys.argv) == 4) and (sys.argv[3] == "debug"):
+        main(sys.argv[1], userid=int(sys.argv[2]), debug=True)
+    else:
+        print("Usage:" + sys.argv[0] + " <database> [UserID]")

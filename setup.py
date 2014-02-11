@@ -11,7 +11,7 @@ classifiers = [
 ]
 
 setup(name="FreeMageDB",
-        version="1.2",
+        version="1.2.1",
         description="FreeMage - A Free File Database Back-End",
         author="Chloride Cull",
         author_email="chloride@devurandom.net",
