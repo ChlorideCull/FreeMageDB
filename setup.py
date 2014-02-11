@@ -17,6 +17,6 @@ setup(name="FreeMageDB",
         author_email="chloride@devurandom.net",
         url="https://github.com/ChlorideCull/FreeMageDB",
         classifiers=classifiers,
-        packages=['FreeMage']
+        packages=['FreeMage'],
         scripts=['scripts/fmdbc.py']
         )
