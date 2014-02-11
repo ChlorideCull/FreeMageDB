@@ -2,10 +2,10 @@
 import FreeMage
 import sqlite3
 
-def main(filename):
+def main(filename, userid=0):
     print("FreeMageDB Console")
-    print("Connected to " + filename + " as User 0")
-    fmgdb = FreeMage.FreeMageDB(sqlite3.connect(filename), 0)
+    print("Connected to " + filename + " as User " + str(userid))
+    fmgdb = FreeMage.FreeMageDB(sqlite3.connect(filename), userid)
     print()
     while True:
         try:
@@ -87,4 +87,9 @@ def main(filename):
 
 if __name__ == "__main__":
     import sys
-    main(sys.argv[1])
+    if len(sys.argv) < 2:
+        print("Usage:" + sys.argv[0] + " <database> [UserID]")
+    elif len(sys.argv) == 2:
+        main(sys.argv[1])
+    elif len(sys.argv) == 3:
+        main(sys.argv[1], userid=int(sys.argv[2]))
