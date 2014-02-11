@@ -4,8 +4,8 @@ import sqlite3
 
 def main(filename):
     print("FreeMageDB Console")
-    print("Connected to " + filename)
-    fmgdb = FreeMage.FreeMageDB(sqlite3.connect(filename))
+    print("Connected to " + filename + " as User 0")
+    fmgdb = FreeMage.FreeMageDB(sqlite3.connect(filename), 0)
     print()
     while True:
         try:
@@ -74,8 +74,9 @@ def main(filename):
                 fileid = int(input("File ID: "))
                 filedata = fmgdb.get_file_info(fileid)
                 print("Filenames: " + str(filedata["filenames"]))
-                print("Tags:" + str(filedata["tags"]))
+                print("Tags: " + str(filedata["tags"]))
                 print("Timestamp: " + str(filedata["timestamp"]))
+                print("Owner: " + str(filedata["userid"]))
                 print()
             else:
                 print("unknown command")
